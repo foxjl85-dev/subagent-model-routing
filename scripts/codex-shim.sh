@@ -19,27 +19,50 @@
 #   OTEL_RESOURCE_ATTRIBUTES    optional; the shim appends gen_ai.request.model=<model> for span attribution (see README Observability)
 set -u
 
+fail_preflight() {
+  local rc="$1"
+  shift
+  printf '%s\n' "codex-shim: $*" >&2
+  printf 'SHIM-DONE exit=%s\n' "$rc"
+  exit "$rc"
+}
+
 if [ "$#" -lt 1 ]; then
-  echo "codex-shim: usage: codex-shim.sh <prompt-source> [extra codex-exec args]" >&2
-  echo "SHIM-DONE exit=64"
-  exit 64
+  fail_preflight 64 "usage: codex-shim.sh <prompt-source> [extra codex-exec args]"
 fi
 
 SOURCE="$1"
 shift
 
+if [ -z "${HOME:-}" ]; then
+  fail_preflight 78 "HOME must be set"
+fi
+
 TIMEOUT_SECS="${SHIM_TIMEOUT_SECS:-1140}"
 UNRESTRICTED="${SUBAGENT_MODEL_ROUTING_UNRESTRICTED:-1}"
 LEDGER="${SUBAGENT_MODEL_ROUTING_LEDGER:-$HOME/.claude/subagent-model-routing/ledger/observations.jsonl}"
+
+if [[ ! "$TIMEOUT_SECS" =~ ^[1-9][0-9]*$ ]]; then
+  fail_preflight 64 "SHIM_TIMEOUT_SECS must be a positive integer"
+fi
+
+case "$UNRESTRICTED" in
+  0|1) ;;
+  *) fail_preflight 64 "SUBAGENT_MODEL_ROUTING_UNRESTRICTED must be 0 or 1" ;;
+esac
 
 if TIMEOUT_BIN="$(command -v timeout 2>/dev/null)"; then
   :
 elif TIMEOUT_BIN="$(command -v gtimeout 2>/dev/null)"; then
   :
 else
-  echo "codex-shim: GNU timeout not found (brew install coreutils provides gtimeout)" >&2
-  echo "SHIM-DONE exit=127"
-  exit 127
+  fail_preflight 127 "GNU timeout not found (brew install coreutils provides gtimeout)"
+fi
+
+if CODEX_BIN="$(command -v codex 2>/dev/null)"; then
+  :
+else
+  fail_preflight 127 "codex CLI not found"
 fi
 
 # Model label for the ledger: the user's config default unless an override is forwarded.
@@ -48,9 +71,13 @@ MODEL="${MODEL:-codex-default}"
 _prev=""
 for _a in "$@"; do
   case "$_prev" in -m|--model) MODEL="$_a" ;; esac
-  case "$_a" in model=*) MODEL="${_a#model=}" ;; esac
+  case "$_a" in
+    -m=*|--model=*) MODEL="${_a#*=}" ;;
+    model=*) MODEL="${_a#model=}" ;;
+  esac
   _prev="$_a"
 done
+MODEL="${MODEL:-codex-default}"
 
 # Span attribution: codex emits usage but no model attribute; its OTel SDK honors
 # OTEL_RESOURCE_ATTRIBUTES. Inert unless the user runs an OTel collector.
@@ -84,7 +111,7 @@ t0=$(date +%s)
 ledger_append "{\"ts\":\"$(now)\",\"shim\":\"codex\",\"model\":\"$MODEL_JSON\",\"event\":\"started\",\"source\":\"shim\"}"
 
 if [ "$SOURCE" = "-" ]; then
-  "$TIMEOUT_BIN" "$TIMEOUT_SECS" codex "${ARGS[@]}" "$@"
+  "$TIMEOUT_BIN" "$TIMEOUT_SECS" "$CODEX_BIN" "${ARGS[@]}" "$@"
   rc=$?
 else
   if [ ! -r "$SOURCE" ]; then
@@ -93,7 +120,7 @@ else
     echo "SHIM-DONE exit=66"
     exit 66
   fi
-  "$TIMEOUT_BIN" "$TIMEOUT_SECS" codex "${ARGS[@]}" "$@" < "$SOURCE"
+  "$TIMEOUT_BIN" "$TIMEOUT_SECS" "$CODEX_BIN" "${ARGS[@]}" "$@" < "$SOURCE"
   rc=$?
 fi
 

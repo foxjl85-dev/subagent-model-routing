@@ -10,6 +10,7 @@ Run the same checks CI runs before pushing:
 for s in scripts/*.sh; do bash -n "$s"; done
 [ "$(bash scripts/codex-shim.sh 2>&1 | tail -1)" = "SHIM-DONE exit=64" ]
 [ "$(bash scripts/opencode-shim.sh 2>&1 | tail -1)" = "SHIM-DONE exit=64" ]
+python3 -m unittest discover -s tests -v
 python3 -m py_compile plugins/subagent-model-routing-claude/hooks/dag-tripwire.py
 python3 -m py_compile plugins/subagent-model-routing-claude/hooks/ledger-tripwire.py
 ```

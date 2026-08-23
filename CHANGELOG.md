@@ -12,6 +12,9 @@ New capabilities bump the **MINOR** version; fixes bump the **PATCH** version.
 
 ## [Unreleased]
 
+### Changed
+- Refresh active Kimi and GLM routes to `kimi-for-coding/k3` and `zai-coding-plan/glm-5.3`, fail fast on invalid shim configuration or missing executables, and add a committed regression suite for these contracts.
+
 ## [0.2.0] - 2026-07-08
 
 ### Added

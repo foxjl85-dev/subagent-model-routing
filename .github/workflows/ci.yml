@@ -26,6 +26,9 @@ jobs:
           [ "$(bash scripts/codex-shim.sh 2>&1 | tail -1)" = "SHIM-DONE exit=64" ]
           [ "$(bash scripts/opencode-shim.sh 2>&1 | tail -1)" = "SHIM-DONE exit=64" ]
 
+      - name: Run repository tests
+        run: python3 -m unittest discover -s tests -v
+
       - name: Compile stop hooks
         run: |
           set -euo pipefail
