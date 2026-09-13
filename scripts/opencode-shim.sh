@@ -20,19 +20,42 @@
 #   OPENCODE_OTLP_ENDPOINT      optional OTLP collector; setting it enables opencode telemetry (see README Observability)
 set -u
 
+fail_preflight() {
+  local rc="$1"
+  shift
+  printf '%s\n' "opencode-shim: $*" >&2
+  printf 'SHIM-DONE exit=%s\n' "$rc"
+  exit "$rc"
+}
+
 if [ "$#" -lt 2 ]; then
-  echo "opencode-shim: usage: opencode-shim.sh <provider/model> <prompt-source> [extra opencode-run args]" >&2
-  echo "SHIM-DONE exit=64"
-  exit 64
+  fail_preflight 64 "usage: opencode-shim.sh <provider/model> <prompt-source> [extra opencode-run args]"
 fi
 
 MODEL="$1"
 SOURCE="$2"
 shift 2
 
+if [ -z "${HOME:-}" ]; then
+  fail_preflight 78 "HOME must be set"
+fi
+
 TIMEOUT_SECS="${SHIM_TIMEOUT_SECS:-1140}"
 UNRESTRICTED="${SUBAGENT_MODEL_ROUTING_UNRESTRICTED:-1}"
 LEDGER="${SUBAGENT_MODEL_ROUTING_LEDGER:-$HOME/.claude/subagent-model-routing/ledger/observations.jsonl}"
+
+if [ -z "$MODEL" ]; then
+  fail_preflight 64 "provider/model must not be empty"
+fi
+
+if [[ ! "$TIMEOUT_SECS" =~ ^[1-9][0-9]*$ ]]; then
+  fail_preflight 64 "SHIM_TIMEOUT_SECS must be a positive integer"
+fi
+
+case "$UNRESTRICTED" in
+  0|1) ;;
+  *) fail_preflight 64 "SUBAGENT_MODEL_ROUTING_UNRESTRICTED must be 0 or 1" ;;
+esac
 
 json_escape() {
   local value
@@ -52,16 +75,28 @@ ledger_append() {
 }
 
 if [ -n "${OPENCODE_BIN:-}" ]; then
-  OPENCODE_BIN_RESOLVED="$OPENCODE_BIN"
+  case "$OPENCODE_BIN" in
+    */*)
+      if [ -x "$OPENCODE_BIN" ]; then
+        OPENCODE_BIN_RESOLVED="$OPENCODE_BIN"
+      else
+        fail_preflight 127 "OPENCODE_BIN is not executable: $OPENCODE_BIN"
+      fi
+      ;;
+    *)
+      if OPENCODE_BIN_RESOLVED="$(command -v "$OPENCODE_BIN" 2>/dev/null)"; then
+        :
+      else
+        fail_preflight 127 "OPENCODE_BIN command not found: $OPENCODE_BIN"
+      fi
+      ;;
+  esac
 elif OPENCODE_BIN_RESOLVED="$(command -v opencode 2>/dev/null)"; then
   :
 elif [ -x "$HOME/.opencode/bin/opencode" ]; then
   OPENCODE_BIN_RESOLVED="$HOME/.opencode/bin/opencode"
 else
-  echo "opencode-shim: opencode CLI not found" >&2
-  ledger_append "{\"ts\":\"$(now)\",\"shim\":\"opencode\",\"model\":\"$MODEL_JSON\",\"event\":\"finished\",\"exit\":127,\"wall_s\":0,\"outcome\":\"error\",\"source\":\"shim\"}"
-  echo "SHIM-DONE exit=127"
-  exit 127
+  fail_preflight 127 "opencode CLI not found"
 fi
 
 if TIMEOUT_BIN="$(command -v timeout 2>/dev/null)"; then
@@ -69,9 +104,7 @@ if TIMEOUT_BIN="$(command -v timeout 2>/dev/null)"; then
 elif TIMEOUT_BIN="$(command -v gtimeout 2>/dev/null)"; then
   :
 else
-  echo "opencode-shim: GNU timeout not found (brew install coreutils provides gtimeout)" >&2
-  echo "SHIM-DONE exit=127"
-  exit 127
+  fail_preflight 127 "GNU timeout not found (brew install coreutils provides gtimeout)"
 fi
 
 PERM_FLAG=""

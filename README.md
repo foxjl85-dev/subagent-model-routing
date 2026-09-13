@@ -242,8 +242,8 @@ rm -rf ~/.local/share/subagent-model-routing
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
-| `SHIM_TIMEOUT_SECS` | `1140` (~19 min) | per-dispatch wall ceiling enforced with `timeout(1)`; raise deliberately for long jobs |
-| `SUBAGENT_MODEL_ROUTING_UNRESTRICTED` | `1` | `1` = bypass the child CLI's sandbox/approval prompts (unattended dispatch); `0` = keep the CLI's own policy |
+| `SHIM_TIMEOUT_SECS` | `1140` (~19 min) | positive-integer per-dispatch wall ceiling enforced with `timeout(1)`; malformed values fail before dispatch |
+| `SUBAGENT_MODEL_ROUTING_UNRESTRICTED` | `1` | must be `1` (bypass the child CLI's sandbox/approval prompts) or `0` (keep the CLI's own policy) |
 | `SUBAGENT_MODEL_ROUTING_LEDGER` | `~/.claude/subagent-model-routing/ledger/observations.jsonl` | where quantitative dispatch records append |
 | `OPENCODE_BIN` | auto-detected | explicit path to the opencode binary |
 | `OPENCODE_OTLP_ENDPOINT` | unset | setting it enables opencode telemetry and auto-fills companion vars (see [Observability](#observability)) |
@@ -258,7 +258,7 @@ rm -rf ~/.local/share/subagent-model-routing
 
 ### Choosing models per dispatch
 
-- **opencode-shim** — the first argument IS the model: any `provider/model` from `opencode models`. Extra flags after the prompt file are forwarded to `opencode run` (e.g. `--variant high`, `--thinking`).
+- **opencode-shim** — the first argument IS the model: any `provider/model` from `opencode models`. Current roster examples are `kimi-for-coding/k3` and `zai-coding-plan/glm-5.3`. Extra flags after the prompt file are forwarded to `opencode run` (e.g. `--variant high`, `--thinking`).
 - **codex-shim** — uses your `~/.codex/config.toml` default model; override per dispatch with `-m <model>` and reasoning effort with `-c model_reasoning_effort=low|medium|high`.
 
 ### Where the deeper config lives

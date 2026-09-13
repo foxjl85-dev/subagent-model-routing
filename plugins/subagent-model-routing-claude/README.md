@@ -40,7 +40,7 @@ test -x ~/.claude/scripts/codex-shim.sh && test -x ~/.claude/scripts/opencode-sh
 Active routes are GPT via `codex-shim` and Kimi/GLM/MiniMax/local models via `opencode-shim`. The bundled shims log quantitative ledger records with `"source":"shim"` (`event`: `started`/`finished`) and emit a final `SHIM-DONE exit=<n>` sentinel per run.
 
 **Tier example (seed — maintain via `/subagent-model-routing-claude:distill` and your own ledger):**
-codex GPT-5.5 ≥ GLM-5.2 (Opus peer, default author) > Kimi K2.7 > MiniMax-M3 (Sonnet peer); local/self-hosted models unranked pending benchmark.
+codex GPT-5.5 ≥ GLM-5.3 (Opus peer, default author) > Kimi K3 > MiniMax-M3 (Sonnet peer); local/self-hosted models unranked pending benchmark.
 
 ## Prompt references
 

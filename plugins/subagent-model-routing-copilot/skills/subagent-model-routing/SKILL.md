@@ -61,7 +61,7 @@ test -x ~/.claude/scripts/codex-shim.sh
 test -x ~/.claude/scripts/opencode-shim.sh
 mkdir -p /tmp/subagent-model-routing-pilot
 printf 'Reply with exactly: pong\n' > /tmp/subagent-model-routing-pilot/pong.md
-~/.claude/scripts/opencode-shim.sh kimi-for-coding/k2p7 /tmp/subagent-model-routing-pilot/pong.md 2>/dev/null | grep -m1 -i pong
+~/.claude/scripts/opencode-shim.sh kimi-for-coding/k3 /tmp/subagent-model-routing-pilot/pong.md 2>/dev/null | grep -m1 -i pong
 ~/.claude/scripts/codex-shim.sh /tmp/subagent-model-routing-pilot/pong.md -c model_reasoning_effort=low | grep -m1 -i pong
 ```
 
@@ -79,7 +79,7 @@ Review the repository for correctness bugs.
 Write findings with file paths, line references, severity, and evidence.
 Do not make code changes.
 EOF
-~/.claude/scripts/opencode-shim.sh kimi-for-coding/k2p7 "$DIR/review.md"
+~/.claude/scripts/opencode-shim.sh kimi-for-coding/k3 "$DIR/review.md"
 # Local/self-hosted models route through opencode-shim as a custom provider.
 ```
 
@@ -88,13 +88,13 @@ For authoring tasks, tell the external harness exactly which files it may edit a
 ## Model Routes
 
 - Codex/GPT route: `~/.claude/scripts/codex-shim.sh <prompt-file> [flags]`
-- Kimi route: `~/.claude/scripts/opencode-shim.sh kimi-for-coding/k2p7 <prompt-file>`
-- GLM route: `~/.claude/scripts/opencode-shim.sh zai-coding-plan/glm-5.2 <prompt-file>`
+- Kimi route: `~/.claude/scripts/opencode-shim.sh kimi-for-coding/k3 <prompt-file>`
+- GLM route: `~/.claude/scripts/opencode-shim.sh zai-coding-plan/glm-5.3 <prompt-file>`
 - MiniMax route: `~/.claude/scripts/opencode-shim.sh minimax/MiniMax-M3 <prompt-file>` (append `--thinking` only when you want the reasoning trace surfaced)
 - Local/self-hosted route (including Qwen): `~/.claude/scripts/opencode-shim.sh <custom-provider/model> <prompt-file> [flags]` — see the root README for an example.
 
 **Tier example (seed — copy into your own ledger and adjust):**
-codex GPT-5.5 ≥ GLM-5.2 > Kimi K2.7 > MiniMax-M3; local/self-hosted models unranked pending benchmark. GLM-5.2 holds the default authoring seat; codex is reserved for the hardest/critical units and deepest review; Kimi is mid-tier utility, parallel candidates, and burst; MiniMax M3 handles Sonnet-grade throughput (stall policy retained). Use GLM-5.2 for default authoring and review, codex for the hardest/critical units and deepest review, Kimi for mid-tier authoring and parallel candidates, MiniMax for Sonnet-grade throughput, and local/self-hosted models for provider-specific experiments or air-gapped work.
+codex GPT-5.5 ≥ GLM-5.3 > Kimi K3 > MiniMax-M3; local/self-hosted models unranked pending benchmark. GLM-5.3 holds the default authoring seat; codex is reserved for the hardest/critical units and deepest review; Kimi is mid-tier utility, parallel candidates, and burst; MiniMax M3 handles Sonnet-grade throughput (stall policy retained). Use GLM-5.3 for default authoring and review, codex for the hardest/critical units and deepest review, Kimi for mid-tier authoring and parallel candidates, MiniMax for Sonnet-grade throughput, and local/self-hosted models for provider-specific experiments or air-gapped work.
 
 Per-model capability cards (excels-at / struggles-with / operational caveats / evidence) live in the Claude Code package within this repo clone at `plugins/subagent-model-routing-claude/skills/subagent-model-routing/ledger/{codex,glm,kimi,minimax,qwen}.md`. They are maintained there by that package's `/subagent-model-routing-claude:distill` command and are read-only reference material from Codex/Copilot; they are present in the repo clone but not in an isolated plugin-cache install.
 
