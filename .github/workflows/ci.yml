@@ -1,7 +1,9 @@
 name: CI
 
 on:
+  # Push runs only on the default branch; every other branch is covered by its PR.
   push:
+    branches: [main]
   pull_request:
 
 permissions:
@@ -9,6 +11,10 @@ permissions:
 
 jobs:
   checks:
+    # GitHub-hosted on purpose: this repo is public (hosted minutes are free for
+    # public repos) and has no self-hosted runner registered. A self-hosted label
+    # would queue forever, and a self-hosted runner on a public repo would run
+    # fork PR code on our host.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
